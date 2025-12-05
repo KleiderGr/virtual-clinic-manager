@@ -20,6 +20,7 @@ const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const DoctorManagement = lazy(() => import("./pages/admin/DoctorManagement"));
 const PatientManagement = lazy(() => import("./pages/admin/PatientManagement"));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
+const SpecialtyManagement = lazy(() => import("./pages/admin/SpecialtyManagement"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -57,22 +58,75 @@ const App = () => {
                     </PageTransition>
                   } 
                 />
-                <Route 
-                  path="/admin/*" 
+                <Route
+                  path="/admin/dashboard"
                   element={
                     <PageTransition>
                       <ProtectedRoute requiredRole="admin">
-                        <Routes>
-                          <Route index element={<AdminDashboard />} />
-                          <Route path="doctors" element={<DoctorManagement />} />
-                          <Route path="patients" element={<PatientManagement />} />
-                          <Route path="users" element={<UserManagement />} />
-                          <Route path="schedules" element={<div>Schedule Management - Coming Soon</div>} />
-                          <Route path="settings" element={<div>Settings - Coming Soon</div>} />
-                        </Routes>
+                        <AdminDashboard />
                       </ProtectedRoute>
                     </PageTransition>
-                  } 
+                  }
+                />
+                <Route
+                  path="/admin/doctors"
+                  element={
+                    <PageTransition>
+                      <ProtectedRoute requiredRole="admin">
+                        <DoctorManagement />
+                      </ProtectedRoute>
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/admin/patients"
+                  element={
+                    <PageTransition>
+                      <ProtectedRoute requiredRole="admin">
+                        <PatientManagement />
+                      </ProtectedRoute>
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/admin/users"
+                  element={
+                    <PageTransition>
+                      <ProtectedRoute requiredRole="admin">
+                        <UserManagement />
+                      </ProtectedRoute>
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/admin/specialties"
+                  element={
+                    <PageTransition>
+                      <ProtectedRoute requiredRole="admin">
+                        <SpecialtyManagement />
+                      </ProtectedRoute>
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/admin/schedules"
+                  element={
+                    <PageTransition>
+                      <ProtectedRoute requiredRole="admin">
+                        <div>Schedule Management - Coming Soon</div>
+                      </ProtectedRoute>
+                    </PageTransition>
+                  }
+                />
+                <Route
+                  path="/admin/settings"
+                  element={
+                    <PageTransition>
+                      <ProtectedRoute requiredRole="admin">
+                        <div>Settings - Coming Soon</div>
+                      </ProtectedRoute>
+                    </PageTransition>
+                  }
                 />
                 <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
               </Routes>

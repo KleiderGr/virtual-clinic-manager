@@ -12,6 +12,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Stethoscope,
+  Shield,
 } from 'lucide-react';
 import { useState } from 'react';
 import Header from './Header';
@@ -28,13 +30,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const navItems = [
     {
       title: 'Dashboard',
-      href: '/admin',
+      href: '/admin/dashboard',
       icon: LayoutDashboard,
-    },
-    {
-      title: 'Usuarios',
-      href: '/admin/users',
-      icon: Users,
     },
     {
       title: 'Doctores',
@@ -45,6 +42,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       title: 'Pacientes',
       href: '/admin/patients',
       icon: Users,
+    },
+    {
+      title: 'Usuarios',
+      href: '/admin/users',
+      icon: Shield,
+    },
+    {
+      title: 'Especialidades',
+      href: '/admin/specialties',
+      icon: Stethoscope,
     },
     {
       title: 'Horarios',
@@ -59,8 +66,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   ];
 
   const isActive = (path: string) => {
-    if (path === '/admin') {
-      return location.pathname === '/admin';
+    if (path === '/admin/dashboard') {
+      return location.pathname === '/admin/dashboard' || location.pathname === '/admin';
     }
     return location.pathname.startsWith(path);
   };
