@@ -1,9 +1,6 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, User, Stethoscope, Menu, X, LogOut, LogIn, UserPlus, Shield, Settings, Earth } from 'lucide-react';
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +9,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
+import { Calendar, Earth, LogIn, LogOut, Menu, Settings, Shield, Stethoscope, User, UserPlus, X } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const Header = () => {
   const location = useLocation();

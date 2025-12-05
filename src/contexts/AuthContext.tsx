@@ -23,6 +23,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithIdToken: (token: string, nonce?: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string, phone?: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
@@ -130,6 +132,49 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  // Sign in with Google
+  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+        },
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      const authError = error as AuthError;
+      toast.error('Error al iniciar sesión con Google', {
+        description: authError.message,
+      });
+      throw error;
+    }
+  };
+
+  // Sign in with ID Token (Google One Tap)
+  const signInWithIdToken = async (token: string, nonce?: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token,
+        nonce,
+      });
+
+      if (error) throw error;
+      
+      toast.success('¡Bienvenido!', {
+        description: 'Has iniciado sesión con Google exitosamente',
+      });
+    } catch (error) {
+      const authError = error as AuthError;
+      toast.error('Error al iniciar sesión con Google One Tap', {
+        description: authError.message,
+      });
+      throw error;
+    }
+  };
+
   // Sign up
   const signUp = async (email: string, password: string, fullName: string, phone?: string) => {
     try {
@@ -213,6 +258,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     session,
     loading,
     signIn,
+    signInWithGoogle,
+    signInWithIdToken,
     signUp,
     signOut,
     updateProfile,
