@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import SEO from '@/components/SEO';
 
 const Dashboard = () => {
   const { appointments, cancelAppointment } = useAppointmentStore();
@@ -89,6 +90,11 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEO 
+        title="Mi Panel - Clínica Virtual X"
+        description="Gestiona tus citas médicas, revisa tu historial y agenda nuevas consultas desde tu panel personal."
+        type="article"
+      />
       <Header />
 
       <main className="flex-1">

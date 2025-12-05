@@ -3,6 +3,8 @@ import Footer from '@/components/layout/Footer';
 import BookingForm from '@/components/booking/BookingForm';
 import { Calendar, Clock, Shield, ArrowRight } from 'lucide-react';
 
+import SEO from '@/components/SEO';
+
 const Book = () => {
   const steps = [
     { number: 1, title: 'Elige especialidad', icon: ArrowRight },
@@ -13,6 +15,10 @@ const Book = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEO 
+        title="Agenda tu Cita - Clínica Virtual X"
+        description="Reserva tu cita médica online en pocos pasos. Elige especialidad, doctor y horario que mejor te convenga."
+      />
       <Header />
 
       <main className="flex-1">

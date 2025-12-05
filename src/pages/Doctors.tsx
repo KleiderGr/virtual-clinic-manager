@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Search, Stethoscope, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+import SEO from '@/components/SEO';
+
 const Doctors = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState<Specialty | ''>('');
@@ -26,6 +28,10 @@ const Doctors = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEO 
+        title="Nuestros Doctores - Clínica Virtual X"
+        description="Conoce a nuestro equipo de especialistas médicos. Doctores certificados en Cardiología, Dermatología, Pediatría y más."
+      />
       <Header />
 
       <main className="flex-1">

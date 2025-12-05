@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,12 +13,13 @@ import { CalendarIcon, CheckCircle, User, Mail, Phone, Loader2 } from 'lucide-re
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { BookingFormData, Specialty, Appointment } from '@/types/clinic';
-import { doctors, specialties, availabilities, blockedDates } from '@/data/mockData';
+import { Appointment, Specialty } from '@/types/clinic';
+import { doctors, availabilities, blockedDates } from '@/data/mockData';
 import { useAppointmentStore } from '@/stores/appointmentStore';
 import { getAvailableSlots } from '@/utils/scheduling';
 import SpecialtyFilter from './SpecialtyFilter';
 import TimeSlotPicker from './TimeSlotPicker';
+import { bookingSchema, BookingFormValues } from '@/utils/validation';
 
 interface BookingFormProps {
   onSuccess?: (appointment: Appointment) => void;
@@ -27,134 +30,80 @@ const BookingForm = ({ onSuccess }: BookingFormProps) => {
   const preselectedDoctor = searchParams.get('doctor');
   
   const { appointments, addAppointment } = useAppointmentStore();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdAppointment, setCreatedAppointment] = useState<Appointment | null>(null);
 
-  const [formData, setFormData] = useState<BookingFormData>({
-    patientName: '',
-    patientEmail: '',
-    patientPhone: '',
-    specialty: '',
-    doctorId: preselectedDoctor || '',
-    date: '',
-    time: '',
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<BookingFormValues>({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: {
+      patientName: '',
+      patientEmail: '',
+      patientPhone: '',
+      specialty: '',
+      doctorId: preselectedDoctor || '',
+      date: '',
+      time: '',
+    },
   });
+
+  const selectedDoctorId = watch('doctorId');
+  const selectedDate = watch('date');
+  const selectedSpecialty = watch('specialty');
 
   // Set preselected doctor's specialty
   useEffect(() => {
     if (preselectedDoctor) {
       const doctor = doctors.find((d) => d.id === preselectedDoctor);
       if (doctor) {
-        setFormData((prev) => ({
-          ...prev,
-          doctorId: preselectedDoctor,
-          specialty: doctor.specialty,
-        }));
+        setValue('doctorId', preselectedDoctor);
+        setValue('specialty', doctor.specialty);
       }
     }
-  }, [preselectedDoctor]);
+  }, [preselectedDoctor, setValue]);
 
   // Filter doctors by selected specialty
   const filteredDoctors = useMemo(() => {
-    if (!formData.specialty) return doctors;
-    return doctors.filter((d) => d.specialty === formData.specialty);
-  }, [formData.specialty]);
+    if (!selectedSpecialty) return doctors;
+    return doctors.filter((d) => d.specialty === selectedSpecialty);
+  }, [selectedSpecialty]);
 
   // Get available time slots when doctor and date are selected
   const availableSlots = useMemo(() => {
-    if (!formData.doctorId || !formData.date) return [];
+    if (!selectedDoctorId || !selectedDate) return [];
     return getAvailableSlots(
-      formData.doctorId,
-      formData.date,
+      selectedDoctorId,
+      selectedDate,
       availabilities,
       appointments,
       blockedDates
     );
-  }, [formData.doctorId, formData.date, appointments]);
+  }, [selectedDoctorId, selectedDate, appointments]);
 
-  const handleSpecialtyChange = (specialty: Specialty | '') => {
-    setFormData((prev) => ({
-      ...prev,
-      specialty,
-      doctorId: '',
-      time: '',
-    }));
-  };
-
-  const handleDoctorChange = (doctorId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      doctorId,
-      time: '',
-    }));
-  };
-
-  const handleDateChange = (date: Date | undefined) => {
-    if (date) {
-      setFormData((prev) => ({
-        ...prev,
-        date: format(date, 'yyyy-MM-dd'),
-        time: '',
-      }));
-    }
-  };
-
-  const handleTimeSelect = (time: string) => {
-    setFormData((prev) => ({ ...prev, time }));
-  };
-
-  const validateForm = (): boolean => {
-    if (!formData.patientName.trim()) {
-      toast.error('Por favor, ingresa tu nombre');
-      return false;
-    }
-    if (!formData.patientEmail.trim() || !formData.patientEmail.includes('@')) {
-      toast.error('Por favor, ingresa un email válido');
-      return false;
-    }
-    if (!formData.patientPhone.trim()) {
-      toast.error('Por favor, ingresa tu teléfono');
-      return false;
-    }
-    if (!formData.doctorId) {
-      toast.error('Por favor, selecciona un doctor');
-      return false;
-    }
-    if (!formData.date) {
-      toast.error('Por favor, selecciona una fecha');
-      return false;
-    }
-    if (!formData.time) {
-      toast.error('Por favor, selecciona un horario');
-      return false;
-    }
-    return true;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: BookingFormValues) => {
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    const selectedDoctor = doctors.find((d) => d.id === formData.doctorId);
+    const selectedDoctor = doctors.find((d) => d.id === data.doctorId);
     
     const newAppointment: Appointment = {
       id: `apt-${Date.now()}`,
       patientId: `patient-${Date.now()}`,
-      patientName: formData.patientName,
-      patientEmail: formData.patientEmail,
-      patientPhone: formData.patientPhone,
-      doctorId: formData.doctorId,
+      patientName: data.patientName,
+      patientEmail: data.patientEmail,
+      patientPhone: data.patientPhone,
+      doctorId: data.doctorId,
       doctorName: selectedDoctor?.name || '',
-      specialty: (formData.specialty || selectedDoctor?.specialty) as Specialty,
-      date: formData.date,
-      time: formData.time,
+      specialty: (data.specialty || selectedDoctor?.specialty) as Specialty,
+      date: data.date,
+      time: data.time,
       status: 'confirmed',
       createdAt: new Date().toISOString(),
     };
@@ -162,7 +111,7 @@ const BookingForm = ({ onSuccess }: BookingFormProps) => {
     addAppointment(newAppointment);
     setCreatedAppointment(newAppointment);
     setIsSuccess(true);
-    setIsSubmitting(false);
+    reset();
 
     toast.success('¡Cita agendada con éxito!', {
       description: 'Te hemos enviado un email de confirmación',
@@ -212,7 +161,7 @@ const BookingForm = ({ onSuccess }: BookingFormProps) => {
           onClick={() => {
             setIsSuccess(false);
             setCreatedAppointment(null);
-            setFormData({
+            reset({
               patientName: '',
               patientEmail: '',
               patientPhone: '',
@@ -230,7 +179,7 @@ const BookingForm = ({ onSuccess }: BookingFormProps) => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       {/* Patient Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -243,11 +192,9 @@ const BookingForm = ({ onSuccess }: BookingFormProps) => {
             <Input
               id="name"
               placeholder="Juan Pérez"
-              value={formData.patientName}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, patientName: e.target.value }))
-              }
+              {...register('patientName')}
             />
+            {errors.patientName && <p className="text-sm text-destructive">{errors.patientName.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -258,12 +205,10 @@ const BookingForm = ({ onSuccess }: BookingFormProps) => {
                 type="email"
                 placeholder="juan@email.com"
                 className="pl-10"
-                value={formData.patientEmail}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, patientEmail: e.target.value }))
-                }
+                {...register('patientEmail')}
               />
             </div>
+            {errors.patientEmail && <p className="text-sm text-destructive">{errors.patientEmail.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="phone">Teléfono</Label>
@@ -274,97 +219,136 @@ const BookingForm = ({ onSuccess }: BookingFormProps) => {
                 type="tel"
                 placeholder="+34 612 345 678"
                 className="pl-10"
-                value={formData.patientPhone}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, patientPhone: e.target.value }))
-                }
+                {...register('patientPhone')}
               />
             </div>
+            {errors.patientPhone && <p className="text-sm text-destructive">{errors.patientPhone.message}</p>}
           </div>
         </div>
       </div>
 
       {/* Specialty Selection */}
-      <SpecialtyFilter
-        selected={formData.specialty as Specialty | ''}
-        onSelect={handleSpecialtyChange}
+      <Controller
+        name="specialty"
+        control={control}
+        render={({ field }) => (
+          <SpecialtyFilter
+            selected={field.value as Specialty | ''}
+            onSelect={(val) => {
+              field.onChange(val);
+              setValue('doctorId', '');
+              setValue('time', '');
+            }}
+          />
+        )}
       />
 
       {/* Doctor Selection */}
       <div className="space-y-3">
         <Label>Selecciona un Doctor</Label>
-        <Select value={formData.doctorId} onValueChange={handleDoctorChange}>
-          <SelectTrigger className="h-12">
-            <SelectValue placeholder="Elige un doctor..." />
-          </SelectTrigger>
-          <SelectContent>
-            {filteredDoctors.map((doctor) => (
-              <SelectItem key={doctor.id} value={doctor.id}>
-                <div className="flex items-center gap-3">
-                  <img
-                    src={doctor.avatar}
-                    alt={doctor.name}
-                    className="h-8 w-8 rounded-full object-cover"
-                  />
-                  <div>
-                    <p className="font-medium">{doctor.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {doctor.specialty} • ⭐ {doctor.rating}
-                    </p>
-                  </div>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Controller
+          name="doctorId"
+          control={control}
+          render={({ field }) => (
+            <Select 
+              value={field.value} 
+              onValueChange={(val) => {
+                field.onChange(val);
+                setValue('time', '');
+              }}
+            >
+              <SelectTrigger className="h-12">
+                <SelectValue placeholder="Elige un doctor..." />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredDoctors.map((doctor) => (
+                  <SelectItem key={doctor.id} value={doctor.id}>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={doctor.avatar}
+                        alt={doctor.name}
+                        className="h-8 w-8 rounded-full object-cover"
+                      />
+                      <div>
+                        <p className="font-medium">{doctor.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {doctor.specialty} • ⭐ {doctor.rating}
+                        </p>
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.doctorId && <p className="text-sm text-destructive">{errors.doctorId.message}</p>}
       </div>
 
       {/* Date Selection */}
       <div className="space-y-3">
         <Label>Selecciona una Fecha</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                'w-full h-12 justify-start text-left font-normal',
-                !formData.date && 'text-muted-foreground'
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {formData.date ? (
-                format(new Date(formData.date), "EEEE, d 'de' MMMM", { locale: es })
-              ) : (
-                <span>Selecciona una fecha</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={formData.date ? new Date(formData.date) : undefined}
-              onSelect={handleDateChange}
-              disabled={(date) => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const day = date.getDay();
-                // Disable past dates and weekends
-                return date < today || day === 0 || day === 6;
-              }}
-              initialFocus
-              className="pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
+        <Controller
+          name="date"
+          control={control}
+          render={({ field }) => (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'w-full h-12 justify-start text-left font-normal',
+                    !field.value && 'text-muted-foreground'
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {field.value ? (
+                    format(new Date(field.value), "EEEE, d 'de' MMMM", { locale: es })
+                  ) : (
+                    <span>Selecciona una fecha</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={field.value ? new Date(field.value) : undefined}
+                  onSelect={(date) => {
+                    if (date) {
+                      field.onChange(format(date, 'yyyy-MM-dd'));
+                      setValue('time', '');
+                    }
+                  }}
+                  disabled={(date) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const day = date.getDay();
+                    return date < today || day === 0 || day === 6;
+                  }}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+        />
+        {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
       </div>
 
       {/* Time Slot Selection */}
-      <TimeSlotPicker
-        availableSlots={availableSlots}
-        selectedTime={formData.time}
-        onSelect={handleTimeSelect}
-        disabled={!formData.doctorId || !formData.date}
+      <Controller
+        name="time"
+        control={control}
+        render={({ field }) => (
+          <TimeSlotPicker
+            availableSlots={availableSlots}
+            selectedTime={field.value}
+            onSelect={field.onChange}
+            disabled={!selectedDoctorId || !selectedDate}
+          />
+        )}
       />
+      {errors.time && <p className="text-sm text-destructive">{errors.time.message}</p>}
 
       {/* Submit Button */}
       <Button

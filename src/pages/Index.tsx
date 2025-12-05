@@ -17,6 +17,8 @@ import {
   Stethoscope,
 } from 'lucide-react';
 
+import SEO from '@/components/SEO';
+
 const Index = () => {
   const featuredDoctors = doctors.slice(0, 3);
 
@@ -52,6 +54,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <SEO 
+        title="Clínica Virtual X - Agenda tu Cita Médica Online"
+        description="Agenda tu cita médica con los mejores especialistas. Cardiología, Dermatología, Pediatría y más. Sin filas, sin esperas, confirmación instantánea."
+      />
       <Header />
 
       <main className="flex-1">
