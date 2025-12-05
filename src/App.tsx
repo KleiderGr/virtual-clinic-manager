@@ -109,16 +109,6 @@ const App = () => {
                   }
                 />
                 <Route
-                  path="/admin/schedules"
-                  element={
-                    <PageTransition>
-                      <ProtectedRoute requiredRole="admin">
-                        <div>Schedule Management - Coming Soon</div>
-                      </ProtectedRoute>
-                    </PageTransition>
-                  }
-                />
-                <Route
                   path="/admin/settings"
                   element={
                     <PageTransition>

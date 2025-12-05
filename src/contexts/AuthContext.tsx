@@ -80,7 +80,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (session?.user) {
         fetchUserData(session.user.id);
       }
-      setLoading(false);
+      setTimeout(() => {
+        setLoading(false);
+      }, 350);
     });
 
     // Listen for auth changes
@@ -96,7 +98,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setProfile(null);
         setRoles([]);
       }
-      setLoading(false);
+      setTimeout(() => {
+        setLoading(false);
+      }, 350);
     });
 
     return () => subscription.unsubscribe();
