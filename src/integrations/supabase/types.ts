@@ -279,7 +279,7 @@ export type Database = {
           license_number: string
           specialty_id: string | null
           updated_at: string
-          user_id: string | null
+          user_id: string
           years_experience: number | null
         }
         Insert: {
@@ -291,7 +291,7 @@ export type Database = {
           license_number: string
           specialty_id?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id: string
           years_experience?: number | null
         }
         Update: {
@@ -303,7 +303,7 @@ export type Database = {
           license_number?: string
           specialty_id?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
           years_experience?: number | null
         }
         Relationships: [

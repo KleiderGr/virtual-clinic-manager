@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,15 +14,20 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { useCreateDoctor, useUpdateDoctor, type Doctor } from '@/hooks/useDoctors';
+import { Separator } from '@/components/ui/separator';
+import { useCreateDoctor, useUpdateDoctor, type Doctor, type CreateDoctorInput } from '@/hooks/useDoctors';
+import { useReplaceAvailability, useDoctorAvailability } from '@/hooks/useAvailability';
+import UserSearchSelect from './UserSearchSelect';
+import ScheduleInput, { type ScheduleSlot } from './ScheduleInput';
 import { Loader2 } from 'lucide-react';
 
 const doctorSchema = z.object({
+  user_id: z.string().min(1, 'Debes seleccionar un usuario'),
   specialty_id: z.string().min(1, 'La especialidad es requerida'),
-  license_number: z.string().min(5, 'La licencia debe tener al menos 5 caracteres'),
+  license_number: z.string().min(5, 'Mínimo 5 caracteres'),
   bio: z.string().optional(),
-  consultation_fee: z.coerce.number().min(0, 'La tarifa debe ser mayor a 0').default(0),
-  years_experience: z.coerce.number().min(0, 'La experiencia debe ser mayor a 0').default(0),
+  consultation_fee: z.coerce.number().min(0).default(0),
+  years_experience: z.coerce.number().min(0).default(0),
   is_active: z.boolean().default(true),
 });
 
@@ -36,7 +42,18 @@ interface DoctorFormProps {
 export default function DoctorForm({ doctor, specialties, onSuccess }: DoctorFormProps) {
   const createDoctor = useCreateDoctor();
   const updateDoctor = useUpdateDoctor();
+  const replaceAvailability = useReplaceAvailability();
+  const { data: existingAvailability } = useDoctorAvailability(doctor?.id);
   const isEditing = !!doctor;
+
+  const initialSchedule: ScheduleSlot[] = existingAvailability?.map(slot => ({
+    day_of_week: slot.day_of_week,
+    start_time: slot.start_time,
+    end_time: slot.end_time,
+    slot_duration: slot.slot_duration,
+  })) || [];
+
+  const [scheduleSlots, setScheduleSlots] = useState<ScheduleSlot[]>(initialSchedule);
 
   const {
     register,
@@ -48,6 +65,7 @@ export default function DoctorForm({ doctor, specialties, onSuccess }: DoctorFor
     resolver: zodResolver(doctorSchema),
     defaultValues: isEditing
       ? {
+          user_id: doctor.user_id || '',
           specialty_id: doctor.specialty_id || '',
           license_number: doctor.license_number,
           bio: doctor.bio || '',
@@ -56,6 +74,7 @@ export default function DoctorForm({ doctor, specialties, onSuccess }: DoctorFor
           is_active: doctor.is_active,
         }
       : {
+          user_id: '',
           specialty_id: '',
           license_number: '',
           bio: '',
@@ -65,141 +84,120 @@ export default function DoctorForm({ doctor, specialties, onSuccess }: DoctorFor
         },
   });
 
-  const isActive = watch('is_active');
-
   const onSubmit = async (data: DoctorFormValues) => {
     try {
+      let doctorId: string;
+
       if (isEditing) {
-        await updateDoctor.mutateAsync({
-          id: doctor.id,
-          ...data,
-        });
+        await updateDoctor.mutateAsync({ id: doctor.id, ...data });
+        doctorId = doctor.id;
       } else {
-        await createDoctor.mutateAsync(data);
+        // Cast to CreateDoctorInput to ensure types match (Zod validation guarantees this)
+        const result = await createDoctor.mutateAsync(data as unknown as CreateDoctorInput);
+        doctorId = typeof result === 'object' ? (result as any).id : result;
       }
+
+      if (scheduleSlots.length > 0 && doctorId) {
+        await replaceAvailability.mutateAsync({
+          doctorId,
+          availability: scheduleSlots,
+        });
+      }
+
       onSuccess();
     } catch (error) {
-      // Error handled in hooks
+      console.error('Error:', error);
     }
   };
 
-  const isPending = createDoctor.isPending || updateDoctor.isPending;
+  const isPending = createDoctor.isPending || updateDoctor.isPending || replaceAvailability.isPending;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Specialty */}
-      <div className="space-y-2">
-        <Label htmlFor="specialty_id">Especialidad *</Label>
-        <Select
-          value={watch('specialty_id')}
-          onValueChange={(value) => setValue('specialty_id', value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecciona una especialidad" />
-          </SelectTrigger>
-          <SelectContent>
-            {specialties.map((specialty) => (
-              <SelectItem key={specialty.id} value={specialty.id}>
-                {specialty.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.specialty_id && (
-          <p className="text-sm text-destructive">{errors.specialty_id.message}</p>
-        )}
-      </div>
+      <div className="space-y-4">
+        <h3 className="font-semibold">Información Básica</h3>
 
-      {/* License Number */}
-      <div className="space-y-2">
-        <Label htmlFor="license_number">Número de Licencia *</Label>
-        <Input
-          id="license_number"
-          {...register('license_number')}
-          placeholder="LIC-12345"
+        <UserSearchSelect
+          value={watch('user_id')}
+          onChange={(value) => setValue('user_id', value)}
+          disabled={isPending || isEditing}
+          error={errors.user_id?.message}
         />
-        {errors.license_number && (
-          <p className="text-sm text-destructive">{errors.license_number.message}</p>
-        )}
-      </div>
 
-      {/* Bio */}
-      <div className="space-y-2">
-        <Label htmlFor="bio">Biografía</Label>
-        <Textarea
-          id="bio"
-          {...register('bio')}
-          placeholder="Describe la experiencia y especialización del doctor..."
-          rows={4}
-        />
-        {errors.bio && (
-          <p className="text-sm text-destructive">{errors.bio.message}</p>
-        )}
-      </div>
-
-      {/* Consultation Fee */}
-      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="consultation_fee">Tarifa de Consulta ($)</Label>
-          <Input
-            id="consultation_fee"
-            type="number"
-            step="0.01"
-            {...register('consultation_fee')}
-            placeholder="50.00"
-          />
-          {errors.consultation_fee && (
-            <p className="text-sm text-destructive">{errors.consultation_fee.message}</p>
+          <Label>Especialidad *</Label>
+          <Select
+            value={watch('specialty_id')}
+            onValueChange={(value) => setValue('specialty_id', value)}
+            disabled={isPending}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecciona especialidad" />
+            </SelectTrigger>
+            <SelectContent>
+              {specialties.map((specialty) => (
+                <SelectItem key={specialty.id} value={specialty.id}>
+                  {specialty.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.specialty_id && (
+            <p className="text-sm text-destructive">{errors.specialty_id.message}</p>
           )}
         </div>
 
-        {/* Years Experience */}
         <div className="space-y-2">
-          <Label htmlFor="years_experience">Años de Experiencia</Label>
-          <Input
-            id="years_experience"
-            type="number"
-            {...register('years_experience')}
-            placeholder="5"
+          <Label>Licencia *</Label>
+          <Input {...register('license_number')} placeholder="LIC-12345" disabled={isPending} />
+          {errors.license_number && (
+            <p className="text-sm text-destructive">{errors.license_number.message}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Tarifa ($)</Label>
+            <Input type="number" step="0.01" {...register('consultation_fee')} disabled={isPending} />
+          </div>
+          <div className="space-y-2">
+            <Label>Años Exp.</Label>
+            <Input type="number" {...register('years_experience')} disabled={isPending} />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Biografía</Label>
+          <Textarea {...register('bio')} rows={3} disabled={isPending} />
+        </div>
+
+        <div className="flex items-center justify-between border rounded-lg p-3">
+          <Label>Activo</Label>
+          <Switch
+            checked={watch('is_active')}
+            onCheckedChange={(checked) => setValue('is_active', checked)}
+            disabled={isPending}
           />
-          {errors.years_experience && (
-            <p className="text-sm text-destructive">{errors.years_experience.message}</p>
-          )}
         </div>
       </div>
 
-      {/* Active Status */}
-      <div className="flex items-center justify-between rounded-lg border p-4">
-        <div className="space-y-0.5">
-          <Label htmlFor="is_active">Estado Activo</Label>
-          <p className="text-sm text-muted-foreground">
-            El doctor estará disponible para agendar citas
-          </p>
-        </div>
-        <Switch
-          id="is_active"
-          checked={isActive}
-          onCheckedChange={(checked) => setValue('is_active', checked)}
-        />
+      <Separator />
+
+      <div className="space-y-4">
+        <h3 className="font-semibold">Horario</h3>
+        <ScheduleInput value={scheduleSlots} onChange={setScheduleSlots} disabled={isPending} />
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-3 justify-end">
-        <Button
-          type="submit"
-          variant="hero"
-          disabled={isPending}
-        >
-          {isPending ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {isEditing ? 'Actualizando...' : 'Creando...'}
-            </>
-          ) : (
-            <>{isEditing ? 'Actualizar Doctor' : 'Crear Doctor'}</>
-          )}
-        </Button>
-      </div>
+      <Button type="submit" className="w-full" size="lg" disabled={isPending}>
+        {isPending ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            Guardando...
+          </>
+        ) : (
+          <>{isEditing ? 'Actualizar' : 'Crear'} Doctor</>
+        )}
+      </Button>
     </form>
   );
 }

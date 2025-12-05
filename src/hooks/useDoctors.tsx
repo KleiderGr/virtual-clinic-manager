@@ -26,7 +26,7 @@ export interface Doctor {
 }
 
 export interface CreateDoctorInput {
-  user_id?: string;
+  user_id: string;
   specialty_id: string;
   license_number: string;
   bio?: string;
