@@ -19,6 +19,7 @@ const Register = lazy(() => import("./pages/Register"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const DoctorManagement = lazy(() => import("./pages/admin/DoctorManagement"));
 const PatientManagement = lazy(() => import("./pages/admin/PatientManagement"));
+const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -34,13 +35,13 @@ const App = () => {
   
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Suspense fallback={<LoadingFallback />}>
-            <AnimatePresence mode="wait">
-              <Routes location={location} key={location.pathname}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Suspense fallback={<LoadingFallback />}>
+              <AnimatePresence mode="wait">
+                <Routes location={location} key={location.pathname}>
                 <Route path="/" element={<PageTransition><Index /></PageTransition>} />
                 <Route path="/book" element={<PageTransition><Book /></PageTransition>} />
                 <Route path="/doctors" element={<PageTransition><Doctors /></PageTransition>} />
@@ -60,11 +61,12 @@ const App = () => {
                   path="/admin/*" 
                   element={
                     <PageTransition>
-                      <ProtectedRoute requiredRole="patient">
+                      <ProtectedRoute requiredRole="admin">
                         <Routes>
                           <Route index element={<AdminDashboard />} />
                           <Route path="doctors" element={<DoctorManagement />} />
                           <Route path="patients" element={<PatientManagement />} />
+                          <Route path="users" element={<UserManagement />} />
                           <Route path="schedules" element={<div>Schedule Management - Coming Soon</div>} />
                           <Route path="settings" element={<div>Settings - Coming Soon</div>} />
                         </Routes>

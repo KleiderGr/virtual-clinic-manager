@@ -14,6 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_id: string | null
+          created_at: string | null
+          details: Json | null
+          id: string
+          ip_address: unknown
+          target_user_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_log_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "doctors_full_info"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "admin_audit_log_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_audit_log_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_with_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_audit_log_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_appointments"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "admin_audit_log_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "doctors_full_info"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "admin_audit_log_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_audit_log_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_with_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_audit_log_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_appointments"
+            referencedColumns: ["patient_id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           appointment_date: string
@@ -62,6 +152,20 @@ export type Database = {
             referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "appointments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors_full_info"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "appointments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_appointments"
+            referencedColumns: ["doctor_id"]
+          },
         ]
       }
       availability: {
@@ -103,6 +207,20 @@ export type Database = {
             referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "availability_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors_full_info"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "availability_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_appointments"
+            referencedColumns: ["doctor_id"]
+          },
         ]
       }
       blocked_dates: {
@@ -134,6 +252,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "doctors"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_dates_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors_full_info"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "blocked_dates_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "upcoming_appointments"
+            referencedColumns: ["doctor_id"]
           },
         ]
       }
@@ -179,6 +311,13 @@ export type Database = {
             foreignKeyName: "doctors_specialty_id_fkey"
             columns: ["specialty_id"]
             isOneToOne: false
+            referencedRelation: "doctors_full_info"
+            referencedColumns: ["specialty_id"]
+          },
+          {
+            foreignKeyName: "doctors_specialty_id_fkey"
+            columns: ["specialty_id"]
+            isOneToOne: false
             referencedRelation: "specialties"
             referencedColumns: ["id"]
           },
@@ -186,8 +325,10 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active: boolean | null
           avatar_url: string | null
           created_at: string
+          deleted_at: string | null
           email: string
           full_name: string
           id: string
@@ -195,8 +336,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          active?: boolean | null
           avatar_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           email: string
           full_name: string
           id: string
@@ -204,8 +347,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          active?: boolean | null
           avatar_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string
           full_name?: string
           id?: string
@@ -261,16 +406,118 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      doctors_full_info: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          consultation_fee: number | null
+          doctor_active: boolean | null
+          doctor_created_at: string | null
+          doctor_id: string | null
+          email: string | null
+          full_name: string | null
+          license_number: string | null
+          phone: string | null
+          specialty_description: string | null
+          specialty_icon: string | null
+          specialty_id: string | null
+          specialty_name: string | null
+          user_id: string | null
+          years_experience: number | null
+        }
+        Relationships: []
+      }
+      profiles_with_roles: {
+        Row: {
+          avatar_url: string | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          phone: string | null
+          profile_created_at: string | null
+          profile_updated_at: string | null
+          role: Database["public"]["Enums"]["app_role"] | null
+          role_created_at: string | null
+        }
+        Relationships: []
+      }
+      upcoming_appointments: {
+        Row: {
+          appointment_created_at: string | null
+          appointment_date: string | null
+          doctor_id: string | null
+          doctor_name: string | null
+          end_time: string | null
+          id: string | null
+          patient_email: string | null
+          patient_id: string | null
+          patient_name: string | null
+          patient_phone: string | null
+          reason: string | null
+          specialty_name: string | null
+          start_time: string | null
+          status: Database["public"]["Enums"]["appointment_status"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      create_appointment_safe: {
+        Args: {
+          p_appointment_date: string
+          p_doctor_id: string
+          p_end_time: string
+          p_reason: string
+          p_start_time: string
+        }
+        Returns: string
+      }
       get_doctor_id: { Args: { _user_id: string }; Returns: string }
+      get_system_stats: {
+        Args: never
+        Returns: {
+          revenue_today: number
+          total_appointments_today: number
+          total_doctors: number
+          total_patients: number
+          total_pending_appointments: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      insert_appointment: {
+        Args: {
+          p_date: string
+          p_doctor_id: string
+          p_end: string
+          p_patient_id: string
+          p_reason: string
+          p_start: string
+        }
+        Returns: undefined
+      }
+      log_admin_action: {
+        Args: { p_action: string; p_details?: Json; p_target_user_id: string }
+        Returns: string
+      }
+      search_available_doctors: {
+        Args: {
+          p_appointment_date?: string
+          p_specialty_id?: string
+          p_start_time?: string
+        }
+        Returns: {
+          available_slots: Json
+          consultation_fee: number
+          doctor_id: string
+          doctor_name: string
+          specialty_name: string
+        }[]
       }
     }
     Enums: {

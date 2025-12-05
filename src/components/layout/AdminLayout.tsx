@@ -32,6 +32,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: LayoutDashboard,
     },
     {
+      title: 'Usuarios',
+      href: '/admin/users',
+      icon: Users,
+    },
+    {
       title: 'Doctores',
       href: '/admin/doctors',
       icon: UserCog,

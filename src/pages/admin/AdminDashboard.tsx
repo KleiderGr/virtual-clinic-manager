@@ -2,15 +2,26 @@ import AdminLayout from '@/components/layout/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDoctors } from '@/hooks/useDoctors';
 import { usePatients } from '@/hooks/usePatients';
-import { Users, UserCog, Calendar, TrendingUp } from 'lucide-react';
+import { useUsers } from '@/hooks/useUsers';
+import { Users, UserCog, Calendar, TrendingUp, Shield } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import SEO from '@/components/SEO';
 
 export default function AdminDashboard() {
   const { data: doctors, isLoading: doctorsLoading } = useDoctors();
   const { data: patients, isLoading: patientsLoading } = usePatients();
+  const { data: users, isLoading: usersLoading } = useUsers();
 
   const stats = [
+    {
+      title: 'Total Usuarios',
+      value: users?.length || 0,
+      icon: Shield,
+      description: 'Usuarios registrados',
+      color: 'text-accent',
+      bgColor: 'bg-accent/10',
+      loading: usersLoading,
+    },
     {
       title: 'Total Doctores',
       value: doctors?.length || 0,
@@ -18,6 +29,7 @@ export default function AdminDashboard() {
       description: `${doctors?.filter((d) => d.is_active).length || 0} activos`,
       color: 'text-primary',
       bgColor: 'bg-primary/10',
+      loading: doctorsLoading,
     },
     {
       title: 'Total Pacientes',
@@ -26,6 +38,7 @@ export default function AdminDashboard() {
       description: 'Pacientes registrados',
       color: 'text-info',
       bgColor: 'bg-info/10',
+      loading: patientsLoading,
     },
     {
       title: 'Citas del Mes',
@@ -34,14 +47,7 @@ export default function AdminDashboard() {
       description: 'Próximamente',
       color: 'text-success',
       bgColor: 'bg-success/10',
-    },
-    {
-      title: 'Crecimiento',
-      value: '-',
-      icon: TrendingUp,
-      description: 'Próximamente',
-      color: 'text-accent',
-      bgColor: 'bg-accent/10',
+      loading: false,
     },
   ];
 
@@ -64,7 +70,6 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat) => {
             const Icon = stat.icon;
-            const isLoading = stat.title.includes('Doctores') ? doctorsLoading : stat.title.includes('Pacientes') ? patientsLoading : false;
 
             return (
               <Card key={stat.title} className="hover:shadow-lg transition-shadow">
@@ -75,7 +80,7 @@ export default function AdminDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {isLoading ? (
+                  {stat.loading ? (
                     <Skeleton className="h-8 w-16" />
                   ) : (
                     <div className="text-2xl font-bold">{stat.value}</div>

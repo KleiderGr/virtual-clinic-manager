@@ -67,7 +67,7 @@ export function useAppointment(id: string | undefined) {
   });
 }
 
-// Create appointment using RPC function
+// Create appointment using secure RPC function with validation
 export function useCreateAppointment() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -76,31 +76,47 @@ export function useCreateAppointment() {
     mutationFn: async (input: CreateAppointmentInput) => {
       if (!user) throw new Error('User not authenticated');
 
-      // Direct insert instead of RPC call
-      const { error } = await supabase
-        .from('appointments')
-        .insert({
-          doctor_id: input.doctor_id,
-          patient_id: user.id,
-          appointment_date: input.appointment_date,
-          start_time: input.start_time,
-          end_time: input.end_time,
-          reason: input.reason,
-          status: 'confirmed',
-        });
+      // Use RPC function for safe appointment creation with validation
+      const { data, error } = await supabase.rpc('create_appointment_safe', {
+        p_doctor_id: input.doctor_id,
+        p_appointment_date: input.appointment_date,
+        p_start_time: input.start_time,
+        p_end_time: input.end_time,
+        p_reason: input.reason,
+      });
 
       if (error) throw error;
+      
+      return data; // Returns appointment ID
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       toast.success('Cita agendada', {
-        description: 'Tu cita ha sido agendada exitosamente',
+        description: 'Tu cita ha sido agendada exitosamente y está pendiente de confirmación',
       });
     },
     onError: (error: Error) => {
-      toast.error('Error al agendar cita', {
-        description: error.message,
-      });
+      // Handle specific validation errors from RPC function
+      const errorMessage = error.message;
+      
+      let userMessage = 'Error al agendar cita';
+      let description = errorMessage;
+
+      if (errorMessage.includes('no disponible')) {
+        userMessage = 'Horario no disponible';
+        description = 'Este horario ya está reservado. Por favor elige otro.';
+      } else if (errorMessage.includes('bloqueada')) {
+        userMessage = 'Fecha bloqueada';
+        description = 'El doctor no está disponible en esta fecha.';
+      } else if (errorMessage.includes('pasado')) {
+        userMessage = 'Fecha inválida';
+        description = 'No puedes agendar citas en el pasado.';
+      } else if (errorMessage.includes('disponibilidad')) {
+        userMessage = 'Fuera de horario';
+        description = 'El doctor no atiende en este horario.';
+      }
+
+      toast.error(userMessage, { description });
     },
   });
 }
