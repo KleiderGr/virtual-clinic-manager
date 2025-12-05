@@ -93,7 +93,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <SEO 
+      <SEO
         title="Mi Panel - Clínica Virtual X"
         description="Gestiona tus citas médicas, revisa tu historial y agenda nuevas consultas desde tu panel personal."
         type="article"
@@ -236,7 +236,7 @@ const Dashboard = () => {
                           </div>
                           <div>
                             <h3 className="font-semibold text-foreground">
-                              {doctor?.profile?.full_name || 'Doctor no disponible'}
+                              {doctor?.profiles?.full_name || 'Doctor no disponible'}
                             </h3>
                             <p className="text-sm text-primary">{doctor?.specialty?.name || 'Especialidad'}</p>
                           </div>
@@ -273,7 +273,7 @@ const Dashboard = () => {
                                   <AlertDialogTitle>¿Cancelar esta cita?</AlertDialogTitle>
                                   <AlertDialogDescription>
                                     Esta acción no se puede deshacer. Tu cita con{' '}
-                                    {doctor?.profile?.full_name || 'el doctor'} será cancelada.
+                                    {doctor?.profiles?.full_name || 'el doctor'} será cancelada.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

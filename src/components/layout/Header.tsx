@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Calendar, User, Stethoscope, Menu, X, LogOut, LogIn, UserPlus, Shield, Settings } from 'lucide-react';
+import { Calendar, User, Stethoscope, Menu, X, LogOut, LogIn, UserPlus, Shield, Settings, Earth } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,9 +20,10 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, profile, isAdmin, isDoctor, signOut, loading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isNotPatient = isAdmin || isDoctor;
 
   const navLinks = [
-    { href: '/', label: 'Inicio', icon: null, auth: false },
+    { href: '/', label: isNotPatient ? 'Portal Web' : 'Inicio', icon: Earth, auth: false },
     { href: '/book', label: 'Agendar Cita', icon: Calendar, auth: false },
     { href: '/doctors', label: 'Doctores', icon: Stethoscope, auth: false },
     { href: '/dashboard', label: 'Mi Panel', icon: User, auth: true },
@@ -187,7 +188,7 @@ const Header = () => {
                   </Button>
                 </Link>
               ))}
-            
+
             {!user ? (
               <>
                 <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
@@ -206,7 +207,7 @@ const Header = () => {
             ) : (
               <>
                 {isAdmin && (
-                  <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
+                  <Link to="/admin/dashboard" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="outline" className="w-full justify-start">
                       <Shield className="h-4 w-4" />
                       Panel Admin

@@ -139,18 +139,18 @@ export default function UserSearchSelect({ value, onChange, disabled, error }: U
       {/* Dropdown List */}
       {isOpen && !disabled && (
         <div className="border rounded-lg shadow-lg bg-background">
-          <ScrollArea className="h-[300px]">
+          <ScrollArea className="h-[200px]">
             {isLoading && page === 0 ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : data?.users && data.users.length > 0 ? (
-              <div className="p-2 space-y-1">
+              <div className="p-1 space-y-1">
                 {data.users.map((user) => (
                   <div
                     key={user.id}
                     className={cn(
-                      "p-3 rounded-lg cursor-pointer transition-colors hover:bg-accent",
+                      "p-1 px-3 rounded-lg cursor-pointer transition-colors hover:bg-primary/10",
                       value === user.id && "bg-primary/10"
                     )}
                     onClick={() => handleSelect(user)}
@@ -202,7 +202,7 @@ export default function UserSearchSelect({ value, onChange, disabled, error }: U
           </ScrollArea>
 
           {/* Close Button */}
-          <div className="border-t p-2">
+          <div className="border-t p-1">
             <Button
               variant="ghost"
               className="w-full"
