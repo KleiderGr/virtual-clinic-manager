@@ -3,8 +3,8 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useAppointmentStore } from '@/stores/appointmentStore';
-import { doctors } from '@/data/mockData';
+import { useAppointments, useCancelAppointment, useAppointmentsSubscription } from '@/hooks/useAppointments';
+import { useDoctors } from '@/hooks/useDoctors';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -16,10 +16,10 @@ import {
   AlertCircle,
   CalendarPlus,
   Stethoscope,
+  Loader2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,24 +32,30 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import SEO from '@/components/SEO';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Dashboard = () => {
-  const { appointments, cancelAppointment } = useAppointmentStore();
+  const { data: appointments, isLoading } = useAppointments();
+  const { data: doctors } = useDoctors();
+  const cancelAppointmentMutation = useCancelAppointment();
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming');
+
+  // Enable real-time subscriptions
+  useAppointmentsSubscription();
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const filteredAppointments = appointments
-    .filter((apt) => {
-      const aptDate = new Date(apt.date);
+    ?.filter((apt) => {
+      const aptDate = new Date(apt.appointment_date);
       if (filter === 'upcoming') return aptDate >= today && apt.status !== 'cancelled';
       if (filter === 'past') return aptDate < today || apt.status === 'cancelled';
       return true;
     })
     .sort((a, b) => {
-      const dateA = new Date(`${a.date}T${a.time}`);
-      const dateB = new Date(`${b.date}T${b.time}`);
+      const dateA = new Date(`${a.appointment_date}T${a.start_time}`);
+      const dateB = new Date(`${b.appointment_date}T${b.start_time}`);
       return filter === 'past' ? dateB.getTime() - dateA.getTime() : dateA.getTime() - dateB.getTime();
     });
 
@@ -81,11 +87,8 @@ const Dashboard = () => {
     }
   };
 
-  const handleCancelAppointment = (id: string) => {
-    cancelAppointment(id);
-    toast.success('Cita cancelada', {
-      description: 'Tu cita ha sido cancelada exitosamente',
-    });
+  const handleCancelAppointment = async (id: string) => {
+    await cancelAppointmentMutation.mutateAsync(id);
   };
 
   return (
@@ -126,9 +129,13 @@ const Dashboard = () => {
                     <Calendar className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">
-                      {appointments.filter((a) => a.status !== 'cancelled').length}
-                    </p>
+                    {isLoading ? (
+                      <Skeleton className="h-8 w-16 mb-1" />
+                    ) : (
+                      <p className="text-2xl font-bold text-foreground">
+                        {appointments?.filter((a) => a.status !== 'cancelled').length || 0}
+                      </p>
+                    )}
                     <p className="text-sm text-muted-foreground">Total de Citas</p>
                   </div>
                 </div>
@@ -139,9 +146,13 @@ const Dashboard = () => {
                     <CheckCircle className="h-6 w-6 text-success" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">
-                      {appointments.filter((a) => a.status === 'confirmed' && new Date(a.date) >= today).length}
-                    </p>
+                    {isLoading ? (
+                      <Skeleton className="h-8 w-16 mb-1" />
+                    ) : (
+                      <p className="text-2xl font-bold text-foreground">
+                        {appointments?.filter((a) => a.status === 'confirmed' && new Date(a.appointment_date) >= today).length || 0}
+                      </p>
+                    )}
                     <p className="text-sm text-muted-foreground">Próximas</p>
                   </div>
                 </div>
@@ -152,10 +163,14 @@ const Dashboard = () => {
                     <Stethoscope className="h-6 w-6 text-info" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">
-                      {new Set(appointments.map((a) => a.specialty)).size}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Especialidades</p>
+                    {isLoading ? (
+                      <Skeleton className="h-8 w-16 mb-1" />
+                    ) : (
+                      <p className="text-2xl font-bold text-foreground">
+                        {doctors?.length || 0}
+                      </p>
+                    )}
+                    <p className="text-sm text-muted-foreground">Doctores</p>
                   </div>
                 </div>
               </div>
@@ -195,10 +210,16 @@ const Dashboard = () => {
             </div>
 
             {/* Appointments List */}
-            {filteredAppointments.length > 0 ? (
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} className="h-32 w-full" />
+                ))}
+              </div>
+            ) : filteredAppointments && filteredAppointments.length > 0 ? (
               <div className="space-y-4">
                 {filteredAppointments.map((appointment) => {
-                  const doctor = doctors.find((d) => d.id === appointment.doctorId);
+                  const doctor = doctors?.find((d) => d.id === appointment.doctor_id);
                   return (
                     <div
                       key={appointment.id}
@@ -210,16 +231,14 @@ const Dashboard = () => {
                       <div className="flex flex-col md:flex-row md:items-center gap-4">
                         {/* Doctor Info */}
                         <div className="flex items-center gap-4 flex-1">
-                          <img
-                            src={doctor?.avatar || ''}
-                            alt={appointment.doctorName}
-                            className="w-14 h-14 rounded-xl object-cover"
-                          />
+                          <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <Stethoscope className="h-7 w-7 text-primary" />
+                          </div>
                           <div>
                             <h3 className="font-semibold text-foreground">
-                              {appointment.doctorName}
+                              {doctor?.profile?.full_name || 'Doctor no disponible'}
                             </h3>
-                            <p className="text-sm text-primary">{appointment.specialty}</p>
+                            <p className="text-sm text-primary">{doctor?.specialty?.name || 'Especialidad'}</p>
                           </div>
                         </div>
 
@@ -228,13 +247,13 @@ const Dashboard = () => {
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                             <span className="text-foreground font-medium">
-                              {format(new Date(appointment.date), "d 'de' MMM, yyyy", { locale: es })}
+                              {format(new Date(appointment.appointment_date), "d 'de' MMM, yyyy", { locale: es })}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-muted-foreground" />
                             <span className="text-foreground font-medium">
-                              {appointment.time}
+                              {appointment.start_time}
                             </span>
                           </div>
                         </div>
@@ -242,7 +261,7 @@ const Dashboard = () => {
                         {/* Status & Actions */}
                         <div className="flex items-center gap-3">
                           {getStatusBadge(appointment.status)}
-                          {appointment.status !== 'cancelled' && new Date(appointment.date) >= today && (
+                          {appointment.status !== 'cancelled' && new Date(appointment.appointment_date) >= today && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
@@ -254,7 +273,7 @@ const Dashboard = () => {
                                   <AlertDialogTitle>¿Cancelar esta cita?</AlertDialogTitle>
                                   <AlertDialogDescription>
                                     Esta acción no se puede deshacer. Tu cita con{' '}
-                                    {appointment.doctorName} será cancelada.
+                                    {doctor?.profile?.full_name || 'el doctor'} será cancelada.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -262,8 +281,13 @@ const Dashboard = () => {
                                   <AlertDialogAction
                                     onClick={() => handleCancelAppointment(appointment.id)}
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    disabled={cancelAppointmentMutation.isPending}
                                   >
-                                    Sí, cancelar
+                                    {cancelAppointmentMutation.isPending ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      'Sí, cancelar'
+                                    )}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
