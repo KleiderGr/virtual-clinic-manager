@@ -48,7 +48,7 @@ export default function DoctorManagement() {
 
   const filteredDoctors = doctors?.filter((doctor) => {
     const searchLower = searchTerm.toLowerCase();
-    const name = doctor.profile?.full_name?.toLowerCase() || '';
+    const name = doctor.profiles?.full_name?.toLowerCase() || '';
     const specialty = doctor.specialty?.name?.toLowerCase() || '';
     const license = doctor.license_number.toLowerCase();
     
@@ -149,7 +149,7 @@ export default function DoctorManagement() {
                 filteredDoctors.map((doctor) => (
                   <TableRow key={doctor.id}>
                     <TableCell className="font-medium">
-                      {doctor.profile?.full_name || 'Sin nombre'}
+                      {doctor.profiles?.full_name || 'Sin nombre'}
                     </TableCell>
                     <TableCell>{doctor.specialty?.name || 'Sin especialidad'}</TableCell>
                     <TableCell className="font-mono text-sm">

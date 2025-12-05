@@ -13,16 +13,16 @@ export interface Doctor {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  // Joined fields
-  profile?: {
+  // Joined fields (note: profiles is singular in response when using foreign key)
+  profiles?: {
     full_name: string;
     email: string;
     phone: string | null;
     avatar_url: string | null;
-  };
+  } | null;
   specialty?: {
     name: string;
-  };
+  } | null;
 }
 
 export interface CreateDoctorInput {
@@ -49,11 +49,15 @@ export function useDoctors() {
         .select(`
           *,
           specialty:specialties(name),
-          profile:profiles(full_name, email, phone, avatar_url)
+          profiles(full_name, email, phone, avatar_url)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching doctors:', error);
+        throw new Error(`Error al cargar doctores: ${error.message}`);
+      }
+
       return data as unknown as Doctor[];
     },
   });
@@ -71,12 +75,16 @@ export function useDoctor(id: string | undefined) {
         .select(`
           *,
           specialty:specialties(name),
-          profile:profiles(full_name, email, phone, avatar_url)
+          profiles(full_name, email, phone, avatar_url)
         `)
         .eq('id', id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching doctor:', error);
+        throw new Error(`Error al cargar doctor: ${error.message}`);
+      }
+
       return data as unknown as Doctor;
     },
     enabled: !!id,

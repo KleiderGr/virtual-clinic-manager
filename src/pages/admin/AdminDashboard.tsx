@@ -3,19 +3,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useDoctors } from '@/hooks/useDoctors';
 import { usePatients } from '@/hooks/usePatients';
 import { useUsers } from '@/hooks/useUsers';
-import { Users, UserCog, Calendar, TrendingUp, Shield } from 'lucide-react';
+import { Users, UserCog, Calendar, Shield } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import SEO from '@/components/SEO';
 
 export default function AdminDashboard() {
   const { data: doctors, isLoading: doctorsLoading } = useDoctors();
   const { data: patients, isLoading: patientsLoading } = usePatients();
-  const { data: users, isLoading: usersLoading } = useUsers();
+  const { data: usersData, isLoading: usersLoading } = useUsers();
 
   const stats = [
     {
       title: 'Total Usuarios',
-      value: users?.length || 0,
+      value: usersData?.total || 0,
       icon: Shield,
       description: 'Usuarios registrados',
       color: 'text-accent',
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium">
-                          {doctor.profile?.full_name || 'Sin nombre'}
+                          {doctor.profiles?.full_name || 'Sin nombre'}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {doctor.specialty?.name || 'Sin especialidad'}
