@@ -40,7 +40,7 @@
   },
   "imports": {
     "@supabase/supabase-js": "jsr:@supabase/supabase-js@^2.7.1",
-    "zod": "jsr:zod@^3.23.8",
+    "zod": "https://deno.land/x/zod@v3.23.8/mod.ts",
     "std/": "https://deno.land/std@0.210.0/",
     "@std/assert": "jsr:@std/assert@1",
     "@std/async": "jsr:@std/async@1",
