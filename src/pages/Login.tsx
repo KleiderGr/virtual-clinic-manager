@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogIn, Mail, Lock, ArrowLeft, Loader2 } from 'lucide-react';
 import SEO from '@/components/SEO';
+import GoogleOneTap from '@/components/auth/GoogleOneTap';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -61,6 +62,8 @@ export default function Login() {
         title="Iniciar Sesión - Clínica Virtual X"
         description="Inicia sesión en tu cuenta de Clínica Virtual X para gestionar tus citas médicas"
       />
+      
+      <GoogleOneTap />
 
       {/* Header with back button */}
       <header className="border-b border-border">

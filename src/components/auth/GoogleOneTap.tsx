@@ -42,22 +42,15 @@ export default function GoogleOneTap() {
         },
         auto_select: true, // Try to automatically select the account
         cancel_on_tap_outside: false, // Optional: prevent closing by clicking outside
-        use_fedcm_for_prompt: true, // Force FedCM which is required by newer Chrome versions
       });
 
       window.google.accounts.id.prompt((notification: any) => {
         if (notification.isNotDisplayed()) {
-          console.log('Google One Tap not displayed. Reason:', notification.getNotDisplayedReason());
+          console.log('Google One Tap not displayed:', notification.getNotDisplayedReason());
         } else if (notification.isSkippedMoment()) {
-          const reason = notification.getSkippedReason();
-          console.log('Google One Tap skipped. Reason:', reason);
-          
-          // Debug help: show toast if it's a configuration issue, but ignore user_cancel/tap_outside
-          if (reason !== 'user_cancel' && reason !== 'tap_outside') {
-             console.warn('One Tap skipped due to:', reason);
-          }
+          console.log('Google One Tap skipped:', notification.getSkippedReason());
         } else if (notification.isDismissedMoment()) {
-          console.log('Google One Tap dismissed. Reason:', notification.getDismissedReason());
+          console.log('Google One Tap dismissed:', notification.getDismissedReason());
         }
       });
     };
