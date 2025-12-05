@@ -54,11 +54,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: Stethoscope,
     },
     {
-      title: 'Horarios',
-      href: '/admin/schedules',
-      icon: Calendar,
-    },
-    {
       title: 'Configuración',
       href: '/admin/settings',
       icon: Settings,
