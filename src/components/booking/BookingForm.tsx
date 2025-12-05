@@ -28,7 +28,7 @@ interface BookingFormProps {
 const BookingForm = ({ onSuccess }: BookingFormProps) => {
   const [searchParams] = useSearchParams();
   const preselectedDoctor = searchParams.get('doctor');
-  
+
   const { appointments, addAppointment } = useAppointmentStore();
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdAppointment, setCreatedAppointment] = useState<Appointment | null>(null);
@@ -92,7 +92,7 @@ const BookingForm = ({ onSuccess }: BookingFormProps) => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const selectedDoctor = doctors.find((d) => d.id === data.doctorId);
-    
+
     const newAppointment: Appointment = {
       id: `apt-${Date.now()}`,
       patientId: `patient-${Date.now()}`,
@@ -132,7 +132,7 @@ const BookingForm = ({ onSuccess }: BookingFormProps) => {
         <p className="text-muted-foreground mb-8">
           Hemos enviado los detalles a tu email
         </p>
-        
+
         <div className="max-w-sm mx-auto bg-secondary/50 rounded-xl p-6 text-left space-y-3">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Doctor:</span>
@@ -145,7 +145,7 @@ const BookingForm = ({ onSuccess }: BookingFormProps) => {
           <div className="flex justify-between">
             <span className="text-muted-foreground">Fecha:</span>
             <span className="font-medium">
-              {format(new Date(createdAppointment.date), "d 'de' MMMM, yyyy", { locale: es })}
+              {format(new Date(createdAppointment.date), "d 'de' MMMM 'de' yyyy", { locale: es })}
             </span>
           </div>
           <div className="flex justify-between">
@@ -250,8 +250,8 @@ const BookingForm = ({ onSuccess }: BookingFormProps) => {
           name="doctorId"
           control={control}
           render={({ field }) => (
-            <Select 
-              value={field.value} 
+            <Select
+              value={field.value}
               onValueChange={(val) => {
                 field.onChange(val);
                 setValue('time', '');
@@ -303,7 +303,7 @@ const BookingForm = ({ onSuccess }: BookingFormProps) => {
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {field.value ? (
-                    format(new Date(field.value), "EEEE, d 'de' MMMM", { locale: es })
+                    format(new Date(field.value), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })
                   ) : (
                     <span>Selecciona una fecha</span>
                   )}
@@ -312,7 +312,7 @@ const BookingForm = ({ onSuccess }: BookingFormProps) => {
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={field.value ? new Date(field.value) : undefined}
+                  selected={field.value ?  new Date(`${field.value} 00:00`) : undefined}
                   onSelect={(date) => {
                     if (date) {
                       field.onChange(format(date, 'yyyy-MM-dd'));

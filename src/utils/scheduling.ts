@@ -19,7 +19,7 @@ export function generateTimeSlots(startTime: string, endTime: string): string[] 
       `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`
     );
     
-    currentMinute += 15;
+    currentMinute += 30;
     if (currentMinute >= 60) {
       currentMinute = 0;
       currentHour += 1;
