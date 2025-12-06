@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { useAssignRole, useRevokeRole, useUpdateUser, type UserWithRoles } from '@/hooks/useUsers';
+import { useAssignRole, useCreateUser, useRevokeRole, useUpdateUser, type UserWithRoles } from '@/hooks/useUsers';
 import type { AppRole } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,14 +17,15 @@ import { z } from 'zod';
 const userSchema = z.object({
   full_name: z.string().min(3, 'Mínimo 3 caracteres'),
   phone: z.string().optional(),
+  email: z.string().email('Email inválido').optional(), 
   active: z.boolean(),
 });
 
 type UserFormValues = z.infer<typeof userSchema>;
 
 interface UserEditFormProps {
-  user: UserWithRoles;
-  onSuccess: () => void;
+  user?: UserWithRoles; 
+  onSuccess: (password?: string) => void;
 }
 
 const ROLES: { role: AppRole; label: string }[] = [
@@ -34,14 +35,15 @@ const ROLES: { role: AppRole; label: string }[] = [
 ];
 
 export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
+  const isCreateMode = !user;
+  
   const updateUser = useUpdateUser();
+  const createUser = useCreateUser();
   const assignRole = useAssignRole();
   const revokeRole = useRevokeRole();
 
-  // State for roles management
-  // We track the *intended* list of roles.
   const [selectedRoles, setSelectedRoles] = useState<AppRole[]>(
-    user.roles.map((r) => r.role)
+    user?.roles.map((r) => r.role) || []
   );
 
   const {
@@ -53,23 +55,24 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
   } = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
     defaultValues: {
-      full_name: user.full_name,
-      phone: user.phone || '',
-      active: user.active,
+      full_name: user?.full_name || '',
+      phone: user?.phone || '',
+      email: user?.email || '',
+      active: user?.active ?? true,
     },
   });
 
-  // Calculate if roles have changed
   const isRolesDirty = useMemo(() => {
-    if (selectedRoles.length !== user.roles.length) return true;
-    const currentRolesSet = new Set(user.roles.map((r) => r.role));
+    if (isCreateMode) return selectedRoles.length > 0;
+    
+    if (selectedRoles.length !== user!.roles.length) return true;
+    const currentRolesSet = new Set(user!.roles.map((r) => r.role));
     return !selectedRoles.every((r) => currentRolesSet.has(r));
-  }, [selectedRoles, user.roles]);
+  }, [selectedRoles, user, isCreateMode]);
 
   const toggleRole = (role: AppRole) => {
     setSelectedRoles((prev) => {
-      // Don't allow removing the last role
-      if (prev.includes(role) && prev.length <= 1) {
+      if (!isCreateMode && prev.includes(role) && prev.length <= 1) {
         return prev;
       }
       return prev.includes(role)
@@ -80,53 +83,72 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
 
   const onSubmit = async (data: UserFormValues) => {
     try {
-      const promises = [];
+      if (isCreateMode) {
+        if (!data.email) {
+          toast.error('El email es requerido');
+          return;
+        }
+        if (selectedRoles.length === 0) {
+          toast.error('Debes seleccionar al menos un rol');
+          return;
+        }
 
-      // 1. Update basic profile if dirty
-      if (isFormDirty) {
-        promises.push(
-          updateUser.mutateAsync({
-            id: user.id,
-            ...data,
-          })
-        );
-      }
-
-      // 2. Handle Role Changes
-      if (isRolesDirty) {
-        const currentRoleNames = new Set(user.roles.map((r) => r.role));
+        const password = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8) + 'Aa1!';
         
-        // Roles to add
-        const rolesToAdd = selectedRoles.filter(r => !currentRoleNames.has(r));
-        rolesToAdd.forEach(role => {
-          promises.push(assignRole.mutateAsync({ userId: user.id, role }));
+        await createUser.mutateAsync({
+          email: data.email,
+          password,
+          full_name: data.full_name,
+          phone: data.phone,
+          role: selectedRoles[0], 
         });
 
-        // Roles to remove
-        const selectedRoleNames = new Set(selectedRoles);
-        const rolesToRemove = user.roles.filter(r => !selectedRoleNames.has(r.role));
-        rolesToRemove.forEach(userRole => {
+        toast.success('Usuario creado correctamente');
+        onSuccess(password);
+      } else {
+        const promises = [];
+
+        if (isFormDirty) {
           promises.push(
-            revokeRole.mutateAsync({ 
-              roleId: userRole.id, 
-              userId: user.id, 
-              roleName: userRole.role 
+            updateUser.mutateAsync({
+              id: user!.id,
+              ...data,
             })
           );
-        });
-      }
+        }
 
-      await Promise.all(promises);
-      toast.success('Cambios guardados correctamente');
-      onSuccess();
+        if (isRolesDirty) {
+          const currentRoleNames = new Set(user!.roles.map((r) => r.role));
+          
+          const rolesToAdd = selectedRoles.filter(r => !currentRoleNames.has(r));
+          rolesToAdd.forEach(role => {
+            promises.push(assignRole.mutateAsync({ userId: user!.id, role }));
+          });
+
+          const selectedRoleNames = new Set(selectedRoles);
+          const rolesToRemove = user!.roles.filter(r => !selectedRoleNames.has(r.role));
+          rolesToRemove.forEach(userRole => {
+            promises.push(
+              revokeRole.mutateAsync({ 
+                roleId: userRole.id, 
+                userId: user!.id, 
+                roleName: userRole.role 
+              })
+            );
+          });
+        }
+
+        await Promise.all(promises);
+        toast.success('Cambios guardados correctamente');
+        onSuccess();
+      }
     } catch (error) {
-      console.error('Error updating user:', error);
-      // Toasts are handled by hooks individually, but we can add a generic one if needed
+      console.error('Error submitting form:', error);
     }
   };
 
-  const isPending = updateUser.isPending || assignRole.isPending || revokeRole.isPending;
-  const hasChanges = isFormDirty || isRolesDirty;
+  const isPending = updateUser.isPending || assignRole.isPending || revokeRole.isPending || createUser.isPending;
+  const hasChanges = isCreateMode ? true : (isFormDirty || isRolesDirty);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -137,12 +159,14 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
             Información del usuario
           </h3>
           <p className="text-xs text-muted-foreground">
-            Información general del usuario
+            {isCreateMode 
+              ? 'Ingresa los datos para registrar un nuevo usuario en el sistema' 
+              : 'Información general del usuario'}
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label>Nombre</Label>
+          <Label>Nombre completo</Label>
           <Input {...register('full_name')} placeholder="Nombre completo" />
           {errors.full_name && (
             <p className="text-sm text-destructive">{errors.full_name.message}</p>
@@ -151,7 +175,15 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
 
         <div className="space-y-2">
           <Label>Email</Label>
-          <Input value={user.email} disabled className="bg-muted" />
+          <Input 
+            {...register('email')} 
+            placeholder="ejemplo@correo.com" 
+            disabled={!isCreateMode} 
+            className={!isCreateMode ? "bg-muted" : ""} 
+          />
+          {errors.email && (
+            <p className="text-sm text-destructive">{errors.email.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -172,7 +204,6 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
 
         <Separator />
 
-        {/* Role Management */}
         <div className="space-y-4">
           <div>
             <h3 className="font-semibold text-sm flex items-center gap-2 mb-1">
@@ -187,8 +218,8 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
           <div className="grid gap-3">
             {ROLES.map((roleConfig) => {
               const isSelected = selectedRoles.includes(roleConfig.role);
-              const isOriginal = user.roles.some(r => r.role === roleConfig.role);
-              const isModified = isSelected !== isOriginal;
+              const isOriginal = !isCreateMode && user!.roles.some(r => r.role === roleConfig.role);
+              const isModified = isCreateMode ? isSelected : (isSelected !== isOriginal);
 
               return (
                 <div
@@ -210,7 +241,7 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
                           Asignado
                         </Badge>
                       )}
-                      {isModified && (
+                      {(isModified && (!isOriginal || isCreateMode)) && (
                         <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-600">
                           <Clock className="h-3 w-3 mr-1" />
                           Pendiente
@@ -230,7 +261,7 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
             })}
           </div>
 
-          {selectedRoles.length === 1 && (
+          {selectedRoles.length <= 1 && (
             <div className="bg-accent/10 border border-accent/20 rounded-lg p-3">
               <p className="text-xs text-accent">
                 ℹ️ Un usuario debe tener al menos un rol asignado.
@@ -248,10 +279,10 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
         {isPending ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            Guardando...
+            {isCreateMode ? 'Creando...' : 'Guardando...'}
           </>
         ) : (
-          <>Guardar Cambios</>
+          <>{isCreateMode ? 'Crear Usuario' : 'Guardar Cambios'}</>
         )}
       </Button>
     </form>

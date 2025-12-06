@@ -40,7 +40,7 @@ interface ProfileFromDB {
 }
 
 // Helper function to safely call log_admin_action
-async function logAdminAction(action: string, targetUserId: string, details?: Record<string, unknown>) {
+async function logAdminAction(action: string, targetUserId: string, details?: Record<string, any>) {
   try {
     // Try to call the RPC function if it exists
     await supabase.rpc('log_admin_action', {
@@ -161,7 +161,8 @@ export function useUpdateUser() {
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string; full_name?: string; phone?: string; avatar_url?: string }) => {
       // Sanitize inputs
-      const sanitized: Record<string, string> = {};
+      // Use any to allow assignment to Supabase update type which might vary
+      const sanitized: Record<string, any> = {};
       
       if (updates.full_name) sanitized.full_name = updates.full_name.trim();
       if (updates.phone) sanitized.phone = updates.phone.trim();
@@ -357,6 +358,50 @@ export function useRestoreUser() {
     onError: (error: Error) => {
       toast.error('Error al restaurar usuario', {
         description: error.message,
+      });
+    },
+  });
+}
+
+// Create new user (requires Edge Function or Admin API)
+export function useCreateUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ email, password, full_name, phone, role }: { 
+      email: string; 
+      password: string; 
+      full_name: string; 
+      phone?: string; 
+      role?: AppRole 
+    }) => {
+      // Logic: This should ideally call a Supabase Edge Function to create the user securely
+      // without exposing service_role key on the client.
+      // For this implementation, we assume an Edge Function 'create-user' exists.
+      
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email,
+          password,
+          full_name,
+          phone,
+          role: role || 'patient', // Default role
+        },
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success('Usuario creado', {
+        description: 'El usuario ha sido creado exitosamente',
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Create user error:', error);
+      toast.error('Error al crear usuario', {
+        description: 'No se pudo crear el usuario. Verifica que el correo no esté registrado.',
       });
     },
   });
