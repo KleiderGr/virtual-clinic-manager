@@ -1,9 +1,16 @@
-import { useState } from 'react';
+import SEO from '@/components/SEO';
+import UserEditForm from '@/components/admin/UserEditForm';
 import AdminLayout from '@/components/layout/AdminLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -12,19 +19,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { useUsers, useUpdateUser } from '@/hooks/useUsers';
-import { Search, Edit, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import SEO from '@/components/SEO';
-import UserEditForm from '@/components/admin/UserEditForm';
 import type { UserWithRoles } from '@/hooks/useUsers';
+import { useUpdateUser, useUsers } from '@/hooks/useUsers';
+import { ChevronLeft, ChevronRight, Edit, Search, Shield, UserCog } from 'lucide-react';
+import { useState } from 'react';
 
 export default function UserManagement() {
   const [page, setPage] = useState(0);
@@ -82,11 +80,30 @@ export default function UserManagement() {
 
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Usuarios</h1>
-          <p className="text-muted-foreground mt-1">
-            {totalUsers} usuarios registrados
-          </p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <UserCog className="h-8 w-8 text-primary" />
+              Gestión de Usuarios
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              {totalUsers || 0} usuarios registrados
+            </p>
+          </div>
+        </div>
+
+        {/* Info Card */}
+        <div className="bg-info/10 border border-info/20 rounded-lg p-4">
+          <div className="flex gap-3">
+            <Shield className="h-5 w-5 text-info shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-info">Panel de Control de Acceso</p>
+              <p className="text-xs text-info/80">
+                Asigna roles (Admin, Doctor, Paciente) para controlar el acceso a las funcionalidades del sistema.
+                Los cambios se aplican inmediatamente.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Search */}
@@ -195,8 +212,8 @@ export default function UserManagement() {
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent>
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen} modal>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Usuario</DialogTitle>
           </DialogHeader>
