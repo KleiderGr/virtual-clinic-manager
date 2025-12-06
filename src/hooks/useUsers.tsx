@@ -63,7 +63,6 @@ export function useUsers(page = 0, pageSize = 50) {
       const { data: profiles, error: profilesError, count } = await supabase
         .from('profiles')
         .select('*', { count: 'exact' })
-        .eq('active', true) // Only active users
         .order('created_at', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
@@ -123,7 +122,6 @@ export function useUser(id: string | undefined) {
         .from('profiles')
         .select('*')
         .eq('id', id)
-        .eq('active', true) // Only active users
         .single();
 
       if (profileError) throw profileError;
@@ -154,12 +152,16 @@ export function useUser(id: string | undefined) {
   });
 }
 
+const isBoolean = (value: any): value is boolean => {
+  return typeof value === 'boolean';
+}
+
 // Update user profile
 export function useUpdateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; full_name?: string; phone?: string; avatar_url?: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; full_name?: string; phone?: string; avatar_url?: string, active?: boolean }) => {
       // Sanitize inputs
       // Use any to allow assignment to Supabase update type which might vary
       const sanitized: Record<string, any> = {};
@@ -167,12 +169,12 @@ export function useUpdateUser() {
       if (updates.full_name) sanitized.full_name = updates.full_name.trim();
       if (updates.phone) sanitized.phone = updates.phone.trim();
       if (updates.avatar_url) sanitized.avatar_url = updates.avatar_url.trim();
+      if (isBoolean(updates.active)) sanitized.active = updates.active;
 
       const { data, error } = await supabase
         .from('profiles')
         .update(sanitized)
         .eq('id', id)
-        .eq('active', true) // Only update active users
         .select()
         .single();
 
@@ -398,10 +400,11 @@ export function useCreateUser() {
         description: 'El usuario ha sido creado exitosamente',
       });
     },
-    onError: (error: Error) => {
-      console.error('Create user error:', error);
+    onError: (error: any) => {
+      console.log('Create user error:', error);
+      console.log('Create user error:', error?.response);
       toast.error('Error al crear usuario', {
-        description: 'No se pudo crear el usuario. Verifica que el correo no esté registrado.',
+        description: error.message || 'No se pudo crear el usuario.',
       });
     },
   });

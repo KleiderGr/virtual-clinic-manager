@@ -15,16 +15,29 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 const userSchema = z.object({
-  full_name: z.string().min(3, 'Mínimo 3 caracteres'),
-  phone: z.string().optional(),
-  email: z.string().email('Email inválido').optional(), 
-  active: z.boolean(),
+  full_name: z.string().min(3, 'Mínimo 3 caracteres').nonempty('El nombre es requerido'),
+  phone: z.string()
+    .trim()
+    .optional()
+    .superRefine((val, ctx) => {
+      if (!val || val.trim() === "") return;
+
+      if (!/^(04(12|14|16|24|26)|02\d{2})[\-]?\d{3}[\-]?\d{4}$/.test(val)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Formato de teléfono inválido. Debe ser de 11 dígitos (04XX/02XX).",
+        });
+      }
+    })
+    .transform(val => (val ? val.replace(/-/g, "") : undefined)),
+  email: z.string().email('Email inválido').nonempty('El email es requerido'),
+  active: z.boolean().default(true),
 });
 
 type UserFormValues = z.infer<typeof userSchema>;
 
 interface UserEditFormProps {
-  user?: UserWithRoles; 
+  user?: UserWithRoles;
   onSuccess: (password?: string) => void;
 }
 
@@ -36,7 +49,7 @@ const ROLES: { role: AppRole; label: string }[] = [
 
 export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
   const isCreateMode = !user;
-  
+
   const updateUser = useUpdateUser();
   const createUser = useCreateUser();
   const assignRole = useAssignRole();
@@ -64,7 +77,7 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
 
   const isRolesDirty = useMemo(() => {
     if (isCreateMode) return selectedRoles.length > 0;
-    
+
     if (selectedRoles.length !== user!.roles.length) return true;
     const currentRolesSet = new Set(user!.roles.map((r) => r.role));
     return !selectedRoles.every((r) => currentRolesSet.has(r));
@@ -84,23 +97,18 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
   const onSubmit = async (data: UserFormValues) => {
     try {
       if (isCreateMode) {
-        if (!data.email) {
-          toast.error('El email es requerido');
+        if (!selectedRoles.length) {
+          toast.error('Debe seleccionar al menos un rol');
           return;
         }
-        if (selectedRoles.length === 0) {
-          toast.error('Debes seleccionar al menos un rol');
-          return;
-        }
-
         const password = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8) + 'Aa1!';
-        
+
         await createUser.mutateAsync({
           email: data.email,
           password,
           full_name: data.full_name,
           phone: data.phone,
-          role: selectedRoles[0], 
+          role: selectedRoles[0],
         });
 
         toast.success('Usuario creado correctamente');
@@ -119,7 +127,7 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
 
         if (isRolesDirty) {
           const currentRoleNames = new Set(user!.roles.map((r) => r.role));
-          
+
           const rolesToAdd = selectedRoles.filter(r => !currentRoleNames.has(r));
           rolesToAdd.forEach(role => {
             promises.push(assignRole.mutateAsync({ userId: user!.id, role }));
@@ -129,10 +137,10 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
           const rolesToRemove = user!.roles.filter(r => !selectedRoleNames.has(r.role));
           rolesToRemove.forEach(userRole => {
             promises.push(
-              revokeRole.mutateAsync({ 
-                roleId: userRole.id, 
-                userId: user!.id, 
-                roleName: userRole.role 
+              revokeRole.mutateAsync({
+                roleId: userRole.id,
+                userId: user!.id,
+                roleName: userRole.role
               })
             );
           });
@@ -159,8 +167,8 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
             Información del usuario
           </h3>
           <p className="text-xs text-muted-foreground">
-            {isCreateMode 
-              ? 'Ingresa los datos para registrar un nuevo usuario en el sistema' 
+            {isCreateMode
+              ? 'Ingresa los datos para registrar un nuevo usuario en el sistema'
               : 'Información general del usuario'}
           </p>
         </div>
@@ -175,11 +183,11 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
 
         <div className="space-y-2">
           <Label>Email</Label>
-          <Input 
-            {...register('email')} 
-            placeholder="ejemplo@correo.com" 
-            disabled={!isCreateMode} 
-            className={!isCreateMode ? "bg-muted" : ""} 
+          <Input
+            {...register('email')}
+            placeholder="ejemplo@correo.com"
+            disabled={!isCreateMode}
+            className={!isCreateMode ? "bg-muted" : ""}
           />
           {errors.email && (
             <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -188,7 +196,10 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
 
         <div className="space-y-2">
           <Label>Teléfono</Label>
-          <Input {...register('phone')} placeholder="+1234567890" />
+          <Input {...register('phone')} placeholder="04XX/02XX-XXXX" />
+          {errors.phone && (
+            <p className="text-sm text-destructive">{errors.phone.message}</p>
+          )}
         </div>
 
         <div className="flex items-center justify-between border rounded-lg p-3">
@@ -249,11 +260,11 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className={cn(
-                      "h-5 w-5 rounded-full border border-primary flex items-center justify-center transition-all",
-                      isSelected ? "bg-primary text-primary-foreground" : "bg-transparent"
-                    )}>
+                    "h-5 w-5 rounded-full border border-primary flex items-center justify-center transition-all",
+                    isSelected ? "bg-primary text-primary-foreground" : "bg-transparent"
+                  )}>
                     {isSelected && <Check className="h-3 w-3" />}
                   </div>
                 </div>
@@ -271,9 +282,9 @@ export default function UserEditForm({ user, onSuccess }: UserEditFormProps) {
         </div>
       </div>
 
-      <Button 
-        type="submit" 
-        className="w-full" 
+      <Button
+        type="submit"
+        className="w-full"
         disabled={isPending || !hasChanges}
       >
         {isPending ? (
